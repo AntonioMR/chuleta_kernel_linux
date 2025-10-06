@@ -1,7 +1,6 @@
 # Linux Kernel Programming Cheatsheet
 
 ## Índice
-
 - [Linux Kernel Programming Cheatsheet](#linux-kernel-programming-cheatsheet)
   - [Índice](#índice)
   - [MODULOS](#modulos)
@@ -52,6 +51,15 @@
     - [Volcados condicionales](#volcados-condicionales)
       - [BUG() o BUG\_ON(condition)](#bug-o-bug_oncondition)
       - [WARN() o WARN\_ON(condition)](#warn-o-warn_oncondition)
+    - [Log de mensajes (printk(...))](#log-de-mensajes-printk)
+      - [Niveles de log actuales](#niveles-de-log-actuales)
+      - [Cambiar niveles de log](#cambiar-niveles-de-log)
+    - [Log de mensajes (pr\_\*(...))](#log-de-mensajes-pr_)
+      - [Activacion de pr\_debug(...)](#activacion-de-pr_debug)
+    - [Dynamic Debug](#dynamic-debug)
+      - [Sintaxis](#sintaxis)
+      - [Acciones:](#acciones)
+      - [Filtros](#filtros)
   - [THREADS](#threads)
 
 ## MODULOS
@@ -84,7 +92,7 @@ nf_tables             376832  71 nft_compat,nft_chain_nat
 
 ### Informacion del modulo cargados (modinfo)
 ``` bash
-$ modinfo nft_compat$ modinfo nft_compat
+$ modinfo nft_compat
 filename:       /lib/modules/6.8.0-83-generic/kernel/net/netfilter/nft_compat.ko
 description:    x_tables over nftables support
 alias:          nft-expr-target
@@ -377,7 +385,7 @@ ffffffff83f90ca4 b prev_header
 ```
 - Direccion virtual del simbolo memoria
 - Tipo de simbolo:
-- T → símbolo global en text section (código, función exportada).
+    - T: símbolo global en text section (código, función exportada).
     - t: símbolo local en text section.
     - D: símbolo global en data section (variable global).
     - d: símbolo local en data section.
@@ -755,4 +763,108 @@ $ sudo dmesg
         attr->vals[i * 2 + 1];
         break;
 ```
+
+### Log de mensajes (printk(...))
+
+* KERN_EMERG	 (0): Mensajes críticos: el sistema no puede continuar.
+* KERN_ALERT	 (1): Requiere atención inmediata (ej. error grave de hardware).
+* KERN_CRIT	   (2): Error crítico (pérdida de datos, fallo grave del subsistema).
+* KERN_ERR	   (3): Error en el dispositivo o módulo, pero el sistema continúa.
+* KERN_WARNING (4): Condición de advertencia; posible problema futuro.
+* KERN_NOTICE	 (5): Mensajes informativos importantes (no error).
+* KERN_INFO    (6): Mensajes informativos generales (estado, inicio…).
+* KERN_DEBUG   (7): Información de depuración; útil durante desarrollo.
+
+```c
+if( !mii_chip_table[i].phy_id1 ) {
+        printk(KERN_INFO "%s: Unknown PHY transceiver found at address %d.\n",
+                dev_name, phy_addr);
+        mii_phy->phy_types = UNKNOWN;
+}
+```
+
+Si no se especifica ningún prefijo (KERN_INFO, etc.), printk() utiliza por defecto el nivel DEFAULT_MESSAGE_LOGLEVEL, que suele corresponder a KERN_WARNING, nivel 4.
+
+#### Niveles de log actuales
+```bash
+$ cat /proc/sys/kernel/printk
+4	4	1	7
+```
+* 4 :	current loglevel: Nivel de severidad máximo que se mostrará actualmente en la consola. En este caso, solo mensajes con nivel ≤ KERN_WARNING (4) se imprimirán.
+* 4 : default loglevel: Nivel por defecto usado por printk() si no se especifica prefijo KERN_...
+* 1 : minimum console loglevel : Nivel mínimo permitido para la consola. El kernel nunca reducirá el nivel de log por debajo de este valor.
+* 7 : default message loglevel for kernel messages : Nivel de log asignado a nuevos mensajes cuando no hay configuración previa (por ejemplo, al arrancar). Generalmente es el valor máximo (KERN_DEBUG).
+
+#### Cambiar niveles de log
+Para que se impriman en consola mensajes hasta KERN_INFO
+```bash
+sudo dmesg -n 7
+```
+
+### Log de mensajes (pr_*(...))
+Son macros de conveniencia definidas en el kernel para simplificar el uso de printk()
+
+Integra automáticamente con el Dynamic Debug (dynamic_debug), lo que permite activar o desactivar pr_debug() en tiempo de ejecución sin recompilar.
+
+| Macro        | Equivalente printk()         | Descripción               | Cuándo se muestra (por defecto)     |
+|:-------------|:-----------------------------|:--------------------------|:------------------------------------|
+| pr_emerg()   | printk(KERN_EMERG ...)       | Error crítico, el sistema es inestable o inutilizable. | Siempre |
+| pr_alert()   | printk(KERN_ALERT ...)       | Condición que requiere atención inmediata. | Siempre      |
+| pr_crit()    | printk(KERN_CRIT ...)        | Error crítico de hardware o kernel. | Siempre            |
+| pr_err()     | printk(KERN_ERR ...)         | Error importante, pero no fatal. | Visible con printk ≤ 3 o 4 |
+| pr_warn()    | printk(KERN_WARNING ...)     | Aviso de posible problema. | Visible con printk ≤ 4       |
+| pr_notice()  | printk(KERN_NOTICE ...)      | Información relevante, pero no crítica. | No visible por defecto |
+| pr_info()    | printk(KERN_INFO ...)        | Información general o de estado. | No visible por defecto |
+| pr_debug()   | printk(KERN_DEBUG ...)       | Mensajes de depuración detallados. | Solo si DEBUG está habilitado |
+
+```c
+pr_info("Set current limit of %s : %duA ~ %duA\n",
+        cable->charger->regulator_name,
+        cable->min_uA, cable->max_uA);
+```
+#### Activacion de pr_debug(...)
+Para que pr_debug() funcione, el módulo o kernel debe compilarse con la macro DEBUG definida:
+```bash
+make EXTRA_CFLAGS="-DDEBUG" ...
+```
+o en el codigo
+```c
+#define DEBUG
+```
+
+### Dynamic Debug
+El sistema Dynamic Debug te permite activar o desactivar en tiempo de ejecución los mensajes pr_debug() y dev_dbg() sin recompilar el kernel ni el módulo.
+Funciona solo si el kernel se compiló con esta opción: `CONFIG_DYNAMIC_DEBUG=y`
+
+El fichero de Dynamic Debug se encuentra en `/sys/kernel/debug/dynamic_debug/control` 
+
+#### Sintaxis
+```bash
+ echo '<filtro> <accion>' | sudo tee /sys/kernel/debug/dynamic_debug/control
+
+```
+#### Acciones:
+* `+p` Activa la impresión (print)
+* `-p` Desactiva la impresión
+* `+f` Muestra nombre de fichero y línea
+* `+m` Muestra nombre de módulo
+* `+t` Añade timestamp
+* `+l` Añade número de línea
+* `-fmpl`	Desactiva opciones adicionales
+* `+` añade los flags indicadas
+* `-` elimina los flags indicadas
+* `=` establece exactamente los flags indicadas
+
+#### Filtros
+* `file` Activa logs en un fichero concreto: `file my_driver.c +p`
+* `module` Activa logs en un modulo: `module my_module +p`
+* `func` Solo en una función específica: `func my_function +p`
+* `line` Solo una linea en concreto: `line 120 +p`
+* `line (rango)` En un rango de lineas: `line 120-140 +p`
+
+Las acciones pueden conbinarse
+```bash
+$ echo 'module my_module func my_function +p' | sudo tee /sys/kernel/debug/dynamic_debug/control
+```
+
 ## THREADS
