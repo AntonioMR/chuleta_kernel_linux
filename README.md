@@ -60,6 +60,10 @@
       - [Sintaxis](#sintaxis)
       - [Acciones:](#acciones)
       - [Filtros](#filtros)
+    - [Estandarizando el formato de logs para el modulo](#estandarizando-el-formato-de-logs-para-el-modulo)
+    - [Logs en disco (syslogd)](#logs-en-disco-syslogd)
+    - [Logs en disco (systemd-journal)](#logs-en-disco-systemd-journal)
+    - [Kernel logs desde espacio de usuario](#kernel-logs-desde-espacio-de-usuario)
   - [THREADS](#threads)
 
 ## MODULOS
@@ -833,8 +837,10 @@ o en el codigo
 ```
 
 ### Dynamic Debug
-El sistema Dynamic Debug te permite activar o desactivar en tiempo de ejecución los mensajes pr_debug() y dev_dbg() sin recompilar el kernel ni el módulo.
+El sistema Dynamic Debug permite activar o desactivar en tiempo de ejecución los mensajes pr_debug() y dev_dbg() sin recompilar el kernel ni el módulo.
 Funciona solo si el kernel se compiló con esta opción: `CONFIG_DYNAMIC_DEBUG=y`
+
+Configurable en `Kernel hacking > printk and dmesg options > Enable dynamic printk() support`
 
 El fichero de Dynamic Debug se encuentra en `/sys/kernel/debug/dynamic_debug/control` 
 
@@ -865,6 +871,58 @@ El fichero de Dynamic Debug se encuentra en `/sys/kernel/debug/dynamic_debug/con
 Las acciones pueden conbinarse
 ```bash
 $ echo 'module my_module func my_function +p' | sudo tee /sys/kernel/debug/dynamic_debug/control
+```
+### Estandarizando el formato de logs para el modulo
+El posible darle un formato estandar a todos los logs del modulo declarando pr_fmt(fmt) al inicio del modulo (antes de los includes)
+```c
+// mi_modulo.c
+#define pr_fmt(fmt) "%s:%s():%d " fmt, KBUILD_MODNAME, __func__, __LINE__
+
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/kernel.h>
+[ ... ]
+static int __init mi_modulo_init(void)
+{
+pr_info("initialized\n");
+[ ... ]
+
+```
+```bash
+[381534.391966] mi_modulo:mi_modulo_init():17 initialized
+```
+
+### Logs en disco (syslogd)
+Para sistemas Debian
+```bash
+$ ll -h /var/log/syslog
+-rw-r----- 1 syslog adm 109M oct  7 17:50 /var/log/syslog
+```
+
+Para sistemas Red Hat
+```bash
+$ /var/log/messages
+```
+
+### Logs en disco (systemd-journal)
+Es el servicio de logs en disco usado en systemd. Se pueden consultar mediante `journalctl`
+Auna todos los los de servicios, kernel, o aplicaciones
+
+TODO
+
+### Kernel logs desde espacio de usuario
+Usado, por ejemplo durante test de modulos con scripts en espacio de usuario, para dejar logs en el buffer del kernel
+```bash
+$ sudo bash -c "echo \"test_script: @user msg 1\" > /dev/kmsg"
+$ sudo dmesg | tail -n1
+[10870.544904] test_script: @user msg 1
+```
+Es posible especificar el nivel del log mediante su valor numerico
+```bash
+$ sudo bash -c "echo \"<6>test_script: test msg at KERN_INFO\" > /dev/kmsg"
+$ sudo dmesg -x | tail -n2
+user  :warn  : [10870.544904] test_script: @user msg 1
+user  :info  : [11489.861591] test_script: test msg at KERN_INFO
 ```
 
 ## THREADS
