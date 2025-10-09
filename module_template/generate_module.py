@@ -26,9 +26,16 @@ class KernelModuleGenerator:
     
     def __init__(self, base_path=None):
         """Initialize the generator with base path"""
-        self.base_path = base_path or Path(__file__).parent
-        self.template_makefile = self.base_path / "Makefile"
-        self.template_c_file = self.base_path / "template.c"
+        # Base path: where to create the module (current working directory by default)
+        if base_path:
+            self.base_path = Path(base_path)
+        else:
+            self.base_path = Path.cwd()  # Current working directory
+        
+        # Template path: always where the script is located
+        script_dir = Path(__file__).parent
+        self.template_makefile = script_dir / "Makefile"
+        self.template_c_file = script_dir / "template.c"
         
     def validate_module_name(self, module_name):
         """Validate that the module name follows kernel conventions"""
@@ -301,7 +308,7 @@ Examples:
                        help="Module description (default: 'Generic kernel module')")
     
     parser.add_argument("--base-path", "-p", 
-                       help="Base path for templates (default: script directory)")
+                       help="Output directory for module creation (default: current working directory)")
     
     parser.add_argument("--version", "-v", 
                        action="version", 
