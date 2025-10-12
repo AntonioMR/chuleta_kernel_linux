@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * Generic Linux Kernel Module Template
  * 
@@ -73,7 +74,7 @@ static char proc_buffer[1024];
  */
 
 /* Called when someone reads from /proc/{{MODULE_NAME}} */
-static ssize_t proc_read(struct file *file, char __user *buffer, size_t count, loff_t *pos)
+static ssize_t {{MODULE_NAME}}_proc_read(struct file *file, char __user *buffer, size_t count, loff_t *pos)
 {
     int len;
     
@@ -103,7 +104,7 @@ static ssize_t proc_read(struct file *file, char __user *buffer, size_t count, l
 }
 
 /* Called when someone writes to /proc/{{MODULE_NAME}} */
-static ssize_t proc_write(struct file *file, const char __user *buffer, size_t count, loff_t *pos)
+static ssize_t {{MODULE_NAME}}_proc_write(struct file *file, const char __user *buffer, size_t count, loff_t *pos)
 {
     char input[256];
     int len = count;
@@ -127,13 +128,13 @@ static ssize_t proc_write(struct file *file, const char __user *buffer, size_t c
 /* Proc file operations structure */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,6,0)
 static const struct proc_ops proc_fops = {
-    .proc_read = proc_read,
-    .proc_write = proc_write,
+    .proc_read = {{MODULE_NAME}}_proc_read,
+    .proc_write = {{MODULE_NAME}}_proc_write,
 };
 #else
 static const struct file_operations proc_fops = {
-    .read = proc_read,
-    .write = proc_write,
+    .read = {{MODULE_NAME}}_proc_read,
+    .write = {{MODULE_NAME}}_proc_write,
 };
 #endif
 
