@@ -11,6 +11,7 @@
 # Author: A.M.R.
 # Date: $(shell date)
 # License: GPL v2
+# Version: 0.1
 
 # =============================================================================
 # MAIN CONFIGURATION - MODIFY THESE VARIABLES FOR YOUR PROJECT
@@ -265,6 +266,60 @@ validate-config:
 	fi
 	@echo "Configuration is valid!"
 
+
+# =============================================================================
+# STATIC ANALYSIS
+# =============================================================================
+
+# sa : "wrapper" target over the following kernel static analyzer targets
+sa:
+	make sa-sparse
+	make sa-gcc
+	make sa-flawfinder
+	make sa-cppcheck
+
+# static analysis with sparse
+sa-sparse:
+ifeq (,$(shell which sparse))
+	$(error ERROR: install sparse first)
+endif
+	make clean
+	@echo
+	@echo "--- static analysis with sparse ---"
+	@echo
+	sparse -I$(KDIR)/include -I$(PWD) $(MODULE).c
+
+# static analysis with gcc
+sa-gcc:
+	make clean
+	@echo
+	@echo "--- static analysis with gcc ---"
+	@echo
+	make W=1 -C $(KDIR) M=$(PWD) modules
+
+# static analysis with flawfinder
+sa-flawfinder:
+ifeq (,$(shell which flawfinder))
+	$(error ERROR: install flawfinder first)
+endif
+	make clean
+	@echo
+	@echo "--- static analysis with flawfinder ---"
+	@echo
+	flawfinder *.[ch]
+
+# static analysis with cppcheck
+sa-cppcheck:
+ifeq (,$(shell which cppcheck))
+	$(error ERROR: install cppcheck first)
+endif
+	make clean
+	@echo
+	@echo "--- static analysis with cppcheck ---"
+	@echo
+	cppcheck -v --force --enable=all -i .tmp_versions/ -i *.mod.c -i bkp/ --suppress=missingIncludeSystem .
+
+
 # =============================================================================
 # HELP AND INFORMATION
 # =============================================================================
@@ -284,6 +339,11 @@ help:
 	@echo "  verbose    - Build with verbose output"
 	@echo "  config     - Show current configuration"
 	@echo "  validate-config - Validate build configuration"
+	@echo "  sa         - Run all static analysis checks"
+	@echo "  sa-sparse  - Static analysis with sparse"
+	@echo "  sa-gcc     - Static analysis with gcc"
+	@echo "  sa-flawfinder - Static analysis with flawfinder"
+	@echo "  sa-cppcheck - Static analysis with cppcheck"
 	@echo "  help       - Show this help message"
 	@echo ""
 	@echo "Cross-compilation usage:"
@@ -313,7 +373,9 @@ help:
 # =============================================================================
 
 # Declare phony targets (targets that don't create files with the same name)
-.PHONY: all clean install load unload reload build-load unload-clean debug verbose help info status config validate-config
+.PHONY: all clean install load unload reload build-load unload-clean debug verbose \
+		help info status config validate-config sa sa-sparse sa-gcc sa-flawfinder \
+		sa-cppcheck
 
 # =============================================================================
 # ADDITIONAL NOTES
