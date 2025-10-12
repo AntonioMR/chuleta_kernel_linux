@@ -35,6 +35,10 @@
     - [Extra symbols](#extra-symbols)
     - [Examinar las secciones de un modulo](#examinar-las-secciones-de-un-modulo)
     - [Examinar el contenido de una seccion](#examinar-el-contenido-de-una-seccion)
+    - [Compilado condicional](#compilado-condicional)
+      - [Arquitectura del procesador](#arquitectura-del-procesador)
+      - [Numero de bits en un tipo de datos long](#numero-de-bits-en-un-tipo-de-datos-long)
+      - [Ordenamiento de bytes en la arquitectura](#ordenamiento-de-bytes-en-la-arquitectura)
 
 ## MODULOS
 
@@ -482,4 +486,64 @@ Contenido de la sección .modinfo:
  0090 4d502070 7265656d 7074206d 6f645f75  MP preempt mod_u
  00a0 6e6c6f61 64206d6f 64766572 73696f6e  nload modversion
  00b0 732000                               s .             
+```
+
+### Compilado condicional
+Existen algunas macros que pueden ayudar a optimizar el codigo dependiendo de la arquitectura para la que se compile el modulo
+
+#### Arquitectura del procesador
+`CONFIG_X86`, 
+`CONFIG_ARM`, 
+`CONFIG_ARM64`,
+`CONFIG_RISCV`
+```c
+// Arquitecturas principales
+#ifdef CONFIG_X86
+    // Código específico para x86/x86_64
+#endif
+
+#ifdef CONFIG_ARM
+    // Código específico para ARM 32-bit
+#endif
+
+#ifdef CONFIG_ARM64
+    // Código específico para ARM64/AArch64
+#endif
+
+#ifdef CONFIG_RISCV
+    // Código específico para RISC-V
+#endif
+
+[...]
+```
+
+#### Numero de bits en un tipo de datos long
+`BITS_PER_LONG`
+* 32 bits en arquitecturas de 32 bits (x86, ARM 32-bit, etc.)
+* 64 bits en arquitecturas de 64 bits (x86_64, ARM64, etc.)
+```c
+#include <linux/types.h>
+[...]
+#if (BITS_PER_LONG == 32)
+u32 my_ul_funct(int);
+#else
+u64 my_ul_funct(int);
+#endif
+```
+
+#### Ordenamiento de bytes en la arquitectura
+`__BIG_ENDIAN`,
+`__LITTLE_ENDIAN`
+```c
+#include <linux/byteorder.h>
+[...]
+#if defined(__BIG_ENDIAN)
+    // Código específico para big-endian
+    #define cpu_to_be32(x) (x)           // No necesita conversión
+    #define be32_to_cpu(x) (x)
+#elif defined(__LITTLE_ENDIAN)
+    // Código específico para little-endian  
+    #define cpu_to_be32(x) swab32(x)     // Necesita intercambio de bytes
+    #define be32_to_cpu(x) swab32(x)
+#endif
 ```
