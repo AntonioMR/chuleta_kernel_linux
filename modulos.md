@@ -24,7 +24,7 @@
       - [Permisos](#permisos)
       - [Ejemplo](#ejemplo)
       - [Arrays de datos como parametros (module\_param\_array(...))](#arrays-de-datos-como-parametros-module_param_array)
-      - [Arrays de datos como parametros (module\_param\_array\_named(...))](#arrays-de-datos-como-parametros-module_param_array_named)
+      - [Modificando el nombre del parametros por defecto (module\_param\_named(...))](#modificando-el-nombre-del-parametros-por-defecto-module_param_named)
       - [Consulta de los parametros de un modulo](#consulta-de-los-parametros-de-un-modulo)
       - [Pasar parametros durante la carga](#pasar-parametros-durante-la-carga)
       - [Visualizacion en el FS (si los permisos son distintos de 0)](#visualizacion-en-el-fs-si-los-permisos-son-distintos-de-0)
@@ -273,9 +273,15 @@ MODULE_PARM_DESC(myarray, "Un array de enteros");
 ```
 Si se pasan menos parametros de MAX_ARRAY se rellenaran a 0. Si se pasan mas, dara error al insertar el modulo.
 
-#### Arrays de datos como parametros (module_param_array_named(...))
+#### Modificando el nombre del parametros por defecto (module_param_named(...))
 ```c
-module_param_array(nombre, tipo, numerop, permisos);
+module_param_named(alias, nombre, tipo, permisos);
+```
+Permite definir un nombre para el parametro distinto de la variable interna que lo almacena.
+```c
+static bool use_safe_settings = 0;
+module_param_named(safe, use_safe_settings, bool, 0);
+MODULE_PARM_DESC(safe, "Use safe and slow settings only. Default: false");
 ```
 
 #### Consulta de los parametros de un modulo
