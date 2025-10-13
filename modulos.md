@@ -13,9 +13,11 @@
     - [Makefile basico](#makefile-basico)
     - [Informacion del modulo compilado (modinfo)](#informacion-del-modulo-compilado-modinfo)
     - [Cargar el modulo (insmod)](#cargar-el-modulo-insmod)
-    - [Cargar el modulo y dependencias (modprobe)](#cargar-el-modulo-y-dependencias-modprobe)
     - [Generacion de dependencias entre modulos (depmod)](#generacion-de-dependencias-entre-modulos-depmod)
+    - [Instalar el modulo](#instalar-el-modulo)
     - [Eliminar el modulo](#eliminar-el-modulo)
+    - [Cargar el modulo y dependencias (modprobe)](#cargar-el-modulo-y-dependencias-modprobe)
+    - [Permitir cargar modulo automaticamente tras el boot](#permitir-cargar-modulo-automaticamente-tras-el-boot)
     - [Estructura basica](#estructura-basica)
     - [Macros de metadatos](#macros-de-metadatos)
     - [Paso de parametros al modulo (module\_param(...))](#paso-de-parametros-al-modulo-module_param)
@@ -29,6 +31,7 @@
       - [Pasar parametros durante la carga](#pasar-parametros-durante-la-carga)
       - [Visualizacion en el FS (si los permisos son distintos de 0)](#visualizacion-en-el-fs-si-los-permisos-son-distintos-de-0)
     - [Proceso de compilado del modulo](#proceso-de-compilado-del-modulo)
+      - [Pasar parametros durante la auto carga](#pasar-parametros-durante-la-auto-carga)
   - [SIMBOLOS (SYMBOL)](#simbolos-symbol)
     - [Symbol Table](#symbol-table)
     - [Exportar Symbols](#exportar-symbols)
@@ -132,12 +135,6 @@ vermagic:       6.8.0-83-generic SMP preempt mod_unload modversions
 $ sudo insmod ./test_module.ko
 ```
 
-### Cargar el modulo y dependencias (modprobe)
-``` bash
-$ sudo modprobe test_module.ko
-```
-solo funciona con modulos que esten en /lib/modules/{kernel_version}/
-
 ### Generacion de dependencias entre modulos (depmod)
 depmod calcula las dependencias de todos los módulos presentes en la carpeta "/lib/modules/{kernel_version}/", y coloca la información de dependencias en el archivo "/lib/modules/{kernel_version}/modules.dep"
 
@@ -154,10 +151,40 @@ kernel/arch/x86/crypto/twofish-x86_64-3way.ko: kernel/arch/x86/crypto/twofish-x8
 * twofish-x86_64.ko tiene una dependencia
 * twofish-x86_64-3way.ko tiene dos dependencias
 
+### Instalar el modulo
+```bash
+$ make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules_install
+```
+Con esto se copia el modulo a `/lib/modules/$(uname -r)/extra/`
+
 ### Eliminar el modulo
 ``` bash
 $ sudo rmmod ./test_module.ko
 ```
+
+### Cargar el modulo y dependencias (modprobe)
+``` bash
+$ sudo modprobe test_module.ko
+```
+solo funciona con modulos que esten en `/lib/modules/{kernel_version}/` para ello los modulos se han tenido que instalar con el target install (ver apartado anterior)
+
+### Permitir cargar modulo automaticamente tras el boot
+```Makefile
+KDIR := /lib/modules/$(shell uname -r)/build
+PWD := $(shell pwd)
+
+install:
+    make -C $(KDIR) M=$(PWD) modules_install
+```
+```bash
+$ make && sudo make install
+[...]
+$ sudo depmod -a
+[...]
+$ sudo sh -c "echo {my_modulo} > /etc/modules-load.d/{my_modulo}.conf"
+```
+Con `systemd` tambien es posible permitir que el module se cargue automaticmante añadiendolo al fichero 
+`/etc/modules-load.d/modules.conf`
 
 ### Estructura basica 
 ```c
@@ -346,6 +373,21 @@ Otros ficheros auxiliares:
 - .modulo.ko.cmd   : receta de compilación
 ```
 
+#### Pasar parametros durante la auto carga
+Es el caso de modulos que se cargan automaticamente tras el boot es posible indicarlo en `/etc/modprobe.d/{my_module}.conf`
+
+La sintaxis es
+
+`options <module-name> <parameter-name>=<value>`
+
+```bash
+$ cat /etc/modprobe.d/alsa-base.conf 
+[...]
+options bt87x index=-2
+options cx88_alsa index=-2
+options saa7134-alsa index=-2
+[...]
+```
 
 ## SIMBOLOS (SYMBOL)
 Un simbolo es cualquier funcion o variable definida en el modulo
