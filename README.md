@@ -2,7 +2,7 @@
 
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 
-Mis apuntes y herramientas mientras aprendo desarrollo de módulos para el kernel de Linux.
+Este repositorio son solo mis apuntes tomados mientras estudio y practico desarrollando drivers para el kernel de Linux. Son solo una guía rápida para mi yo del futuro. Todo lo que está reflejado está basado en pruebas reales, aunque puede contener alguna errata fruto de la edición.
 
 ## 📚 Documentación
 

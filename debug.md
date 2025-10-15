@@ -363,8 +363,11 @@ El fichero de Dynamic Debug se encuentra en `/sys/kernel/debug/dynamic_debug/con
 
 ### Sintaxis
 ```bash
- echo '<filtro> <accion>' | sudo tee /sys/kernel/debug/dynamic_debug/control
-
+$ echo '<filtro> <accion>' | sudo tee /sys/kernel/debug/dynamic_debug/control
+```
+o
+```bash
+$ sudo sh -c "echo '<filtro> <accion>' | tee /sys/kernel/debug/dynamic_debug/control"
 ```
 ### Acciones:
 * `+p` Activa la impresión (print)
