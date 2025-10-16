@@ -19,6 +19,7 @@ Ftrace permite rastrear y monitorizar las llamadas a funciones del kernel en tie
     - [Tracer `function`](#tracer-function)
     - [Tracer `function_graph`](#tracer-function_graph)
       - [Duracion de la funcion](#duracion-de-la-funcion)
+      - [Limitar la profundidad maxima de anidacion](#limitar-la-profundidad-maxima-de-anidacion)
   - [Borrado del buffer del tracer](#borrado-del-buffer-del-tracer)
   - [Encendiendo y apagando el tracing](#encendiendo-y-apagando-el-tracing)
   - [Filtros](#filtros)
@@ -26,8 +27,15 @@ Ftrace permite rastrear y monitorizar las llamadas a funciones del kernel en tie
       - [Fijar un filtro](#fijar-un-filtro)
       - [Añadir un filtro](#añadir-un-filtro)
       - [Borrar todos los filtros](#borrar-todos-los-filtros)
+    - [Filtrar las funciones de un modulo](#filtrar-las-funciones-de-un-modulo)
     - [Filtrar las funciones que llama una funcion del kernel](#filtrar-las-funciones-que-llama-una-funcion-del-kernel)
     - [Filtrar las funciones que llama un proceso](#filtrar-las-funciones-que-llama-un-proceso)
+    - [Funciones que duren mas de un tiempo](#funciones-que-duren-mas-de-un-tiempo)
+  - [Flags](#flags)
+    - [irqs-off/BH-disabled (Posicion 1)](#irqs-offbh-disabled-posicion-1)
+    - [need-resched (Posicion 2)](#need-resched-posicion-2)
+    - [hardirq/softirq (Posicion 3)](#hardirqsoftirq-posicion-3)
+    - [preempt-depth (Posicion 4)](#preempt-depth-posicion-4)
 
 
 ## Configuraciones del Kernel necesarias
@@ -220,6 +228,46 @@ sudo cat /sys/kernel/tracing/trace | grep ' \* '
  0) * 10534.61 us |  }
 ```
 
+Otra manera de buscar funciones que duren mas de un determinado tiempo es con [tracing_thresh](#funciones-que-duren-mas-de-un-tiempo) 
+
+#### Limitar la profundidad maxima de anidacion
+Mediante la configuracion de `/sys/kernel/tracing/max_grpht_depth` se puede limitar el maximo nivel de anidacion de las funciones.
+
+Por defecto es 0
+
+```bash
+# echo 2 > max_graph_depth 
+# echo function_graph > current_tracer 
+# head -50 trace
+
+# tracer: function_graph
+#
+# CPU  DURATION                  FUNCTION CALLS
+# |     |   |                     |   |   |   |
+ 3)   1.323 us    |  } /* irq_enter_rcu */
+ 3)               |  __sysvec_apic_timer_interrupt() {
+ 3) + 55.778 us   |    hrtimer_interrupt();
+ 3) + 58.500 us   |  }
+ 3)               |  irq_exit_rcu() {
+ 3) + 17.816 us   |    handle_softirqs();
+ 3)   1.273 us    |    sched_core_idle_cpu();
+ 3) + 22.622 us   |  }
+ 3)   1.278 us    |  syscall_exit_to_user_mode_prepare();
+ 3)   1.278 us    |  fpregs_assert_state_consistent();
+ 3)               |  syscall_trace_enter() {
+ 3)   2.691 us    |    __secure_computing();
+ 3)   5.303 us    |  }
+ 3)               |  x64_sys_call() {
+ 3) + 56.300 us   |    __x64_sys_write();
+ 3) + 58.836 us   |  }
+ 3)   1.227 us    |  syscall_exit_to_user_mode_prepare();
+ 3)   1.223 us    |  fpregs_assert_state_consistent();
+ 3)               |  syscall_trace_enter() {
+ 3)   7.838 us    |    __secure_computing();
+ 3)   9.973 us    |  }
+ [...]
+```
+
 ## Borrado del buffer del tracer
 ```bash
 # echo > /sys/kernel/tracing/trace
@@ -302,6 +350,11 @@ Tambien admite wildcards
 #### Borrar todos los filtros
 ```bash
 # echo > set_ftrace_filter 
+```
+
+### Filtrar las funciones de un modulo
+```bash
+# echo ':mod:module_name' > set_ftrace_filter
 ```
 
 ### Filtrar las funciones que llama una funcion del kernel
@@ -444,3 +497,110 @@ $ sudo cat /sys/kernel/tracing/trace
 $ sudo cat /sys/kernel/tracing/trace | wc -l
 36623
 ```
+
+### Funciones que duren mas de un tiempo
+```bash
+# echo 100000 > tracing_thresh 
+# echo function_graph > current_tracer 
+# head -60 trace
+
+# tracer: function_graph
+#
+# CPU  DURATION                  FUNCTION CALLS
+# |     |   |                     |   |   |   |
+ 2) @ 100140.3 us |  } /* x64_sys_call */
+ 2) @ 100139.0 us |        } /* do_poll.constprop.0 */
+ 2) @ 100143.6 us |      } /* do_sys_poll */
+ 2) @ 100145.5 us |    } /* __x64_sys_poll */
+ 2) @ 100146.4 us |  } /* x64_sys_call */
+ ------------------------------------------
+ 2)  Inotify-3838  =>   code-7840   
+ ------------------------------------------
+
+ 2) @ 200211.4 us |  } /* x64_sys_call */
+ ------------------------------------------
+ 2)   code-7840    =>   code-7822   
+ ------------------------------------------
+
+ 2) @ 200297.9 us |            } /* futex_wait_queue */
+ 2) @ 200300.2 us |          } /* __futex_wait */
+ 2) @ 200303.2 us |        } /* futex_wait */
+ 2) @ 200303.8 us |      } /* do_futex */
+ 2) @ 200304.7 us |    } /* __x64_sys_futex */
+ 2) @ 200305.1 us |  } /* x64_sys_call */
+[...]
+```
+
+## Flags
+Los flags proporcionan informacion sobre el estado del sistema en el momento de la llamada a funcion.
+
+```bash
+# tracer: function
+#
+# entries-in-buffer/entries-written: 205028/14641083   #P:4
+#
+#                                _-----=> irqs-off/BH-disabled
+#                               / _----=> need-resched
+#                              | / _---=> hardirq/softirq
+#                              || / _--=> preempt-depth
+#                              ||| / _-=> migrate-disable
+#                              |||| /     delay
+#           TASK-PID     CPU#  |||||  TIMESTAMP  FUNCTION
+#              | |         |   |||||     |         |
+   IPC I/O Child-7360    [003] d.s1. 10081.902716: sugov_iowait_boost <-sugov_update_single_freq
+   IPC I/O Child-7360    [003] d.s1. 10081.902716: sugov_should_update_freq <-sugov_update_single_freq
+   IPC I/O Child-7360    [003] d.s1. 10081.902717: sugov_iowait_apply.constprop.0 <-sugov_update_single_freq
+   IPC I/O Child-7360    [003] d.s1. 10081.902717: sugov_get_util <-sugov_update_single_freq
+   IPC I/O Child-7360    [003] d.s1. 10081.902717: cpu_util_cfs_boost <-sugov_get_util
+   IPC I/O Child-7360    [003] d.s1. 10081.902718: effective_cpu_util <-sugov_get_util
+   IPC I/O Child-7360    [003] d.s1. 10081.902719: get_next_freq.constprop.0 <-sugov_update_single_freq
+   IPC I/O Child-7360    [003] d.s1. 10081.902719: cpufreq_driver_resolve_freq <-get_next_freq.constprop.0
+   IPC I/O Child-7360    [003] d.s1. 10081.902719: tick_nohz_get_idle_calls_cpu <-sugov_update_single_freq
+   IPC I/O Child-7360    [003] d.s1. 10081.902720: raw_spin_rq_unlock <-update_blocked_averages
+   IPC I/O Child-7360    [003] d.s1. 10081.902720: _raw_spin_unlock <-raw_spin_rq_unlock
+   IPC I/O Child-7360    [003] ..s.. 10081.902721: rebalance_domains <-run_rebalance_domains
+   IPC I/O Child-7360    [003] ..s.. 10081.902721: __rcu_read_lock <-rebalance_domains
+   IPC I/O Child-7360    [003] ..s.. 10081.902722: __msecs_to_jiffies <-rebalance_domains
+   IPC I/O Child-7360    [003] ..s.. 10081.902722: __msecs_to_jiffies <-rebalance_domains
+   IPC I/O Child-7360    [003] ..s.. 10081.902723: __rcu_read_unlock <-rebalance_domains
+   IPC I/O Child-7360    [003] d.... 10081.902723: sched_core_idle_cpu <-__irq_exit_rcu
+   IPC I/O Child-7360    [003] ..... 10081.902724: unix_destruct_scm <-skb_release_head_state
+   IPC I/O Child-7360    [003] ..... 10081.902725: put_pid <-unix_destruct_scm
+   IPC I/O Child-7360    [003] ..... 10081.902725: sock_wfree <-unix_destruct_scm
+
+```
+
+### irqs-off/BH-disabled (Posicion 1)
+Indica si las interrupciones están deshabilitadas o si los bottom halves están deshabilitados:
+* `.`: Interrupciones habilitadas y bottom halves habilitados
+* `d`: Interrupciones deshabilitadas (IRQs off)
+
+### need-resched (Posicion 2)  
+Indica si el proceso actual necesita ser replanificado:
+* `N`: TIF_NEED_RESCHED y PREEMPT_NEED_RESCHED están establecidos
+* `n`: solo TIF_NEED_RESCHED está establecido  
+* `p`: solo PREEMPT_NEED_RESCHED está establecido
+* `.`: ninguno está establecido
+
+* `TIF_NEED_RESCHED`: indica que el proceso lleva suficiente tiempo de ejecucion y necesita replanificarse pero continua ejecutandose. No se interrumpe inmediatamente.
+* `PREEMPT_NEED_RESCHED`: indica que el proceso actual debe ser reemplazado por otra de mas prioridad.
+
+### hardirq/softirq (Posicion 3)
+Muestra el contexto de interrupcion actual:
+* `.`: Contexto normal (process context)
+* `s`: Ejecutandose en contexto de soft interrupt
+* `h`: Ejecutandose en contexto de hard interrupt
+* `H`: Hard interrupt ocurrio durante una soft interrupt
+* `z`: NMI esta ejecutandose
+* `Z`: NMI sucedio durante una hard interrupt
+
+### preempt-depth (Posicion 4)
+Indica el nivel de deshabilitación del preemption:
+* `.` = preemption habilitada (depth = 0)
+* `0-f` = Nivel de preempt_count en hexadecimal (cuántas veces se deshabilito el preemption)
+* `#` = Nivel mayor a 15
+
+Estos flags son importantes para entender el contexto de ejecucion y detectar problemas como:
+- Secciones criticas muy largas (IRQs deshabilitadas por mucho tiempo)
+- Problemas de latencia (need-resched no atendido)
+- Problemas de concurrencia (preemption deshabilitado)
