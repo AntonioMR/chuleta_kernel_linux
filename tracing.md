@@ -22,6 +22,9 @@ Ftrace permite rastrear y monitorizar las llamadas a funciones del kernel en tie
       - [Limitar la profundidad maxima de anidacion](#limitar-la-profundidad-maxima-de-anidacion)
   - [Borrado del buffer del tracer](#borrado-del-buffer-del-tracer)
   - [Encendiendo y apagando el tracing](#encendiendo-y-apagando-el-tracing)
+  - [Acciones al ejecutar una funcion.](#acciones-al-ejecutar-una-funcion)
+    - [agregar accion](#agregar-accion)
+    - [borrar accion](#borrar-accion)
   - [Filtros](#filtros)
     - [Filtro por funcion](#filtro-por-funcion)
       - [Fijar un filtro](#fijar-un-filtro)
@@ -31,23 +34,29 @@ Ftrace permite rastrear y monitorizar las llamadas a funciones del kernel en tie
     - [Filtrar las funciones que llama una funcion del kernel](#filtrar-las-funciones-que-llama-una-funcion-del-kernel)
     - [Filtrar las funciones que llama un proceso](#filtrar-las-funciones-que-llama-un-proceso)
     - [Funciones que duren mas de un tiempo](#funciones-que-duren-mas-de-un-tiempo)
-  - [Flags](#flags)
-    - [irqs-off/BH-disabled (Posicion 1)](#irqs-offbh-disabled-posicion-1)
-    - [need-resched (Posicion 2)](#need-resched-posicion-2)
-    - [hardirq/softirq (Posicion 3)](#hardirqsoftirq-posicion-3)
-    - [preempt-depth (Posicion 4)](#preempt-depth-posicion-4)
+    - [Flags](#flags)
+      - [irqs-off/BH-disabled (Posicion 1)](#irqs-offbh-disabled-posicion-1)
+      - [need-resched (Posicion 2)](#need-resched-posicion-2)
+      - [hardirq/softirq (Posicion 3)](#hardirqsoftirq-posicion-3)
+      - [preempt-depth (Posicion 4)](#preempt-depth-posicion-4)
+  - [Opciones de Trace](#opciones-de-trace)
+    - [Habilitar opciones](#habilitar-opciones)
+    - [Deshabilitar opciones](#deshabilitar-opciones)
+    - [Directorio de opciones](#directorio-de-opciones)
+    - [Estadisticas de uso de funciones](#estadisticas-de-uso-de-funciones)
+  - [Trace desde espacio de usuario](#trace-desde-espacio-de-usuario)
 
 
 ## Configuraciones del Kernel necesarias
-`CONFIG_FTRACE` --> "Tracers"
-`CONFIG_FUNCTION_TRACER` --> Kernel Function Tracer
-`CONFIG_FUNCTION_GRAPH_TRACER` --> Kernel Function Graph Tracer
-`CONFIG_STACK_TRACER`	--> Traces Max stack
+* `CONFIG_FTRACE` --> "Tracers"
+* `CONFIG_FUNCTION_TRACER` --> Kernel Function Tracer
+* `CONFIG_FUNCTION_GRAPH_TRACER` --> Kernel Function Graph Tracer
+* `CONFIG_STACK_TRACER`	--> Traces Max stack
 
 ## Ftrace en el sitema de ficheros
 Para Debian y derivados suele estar en `/sys/kernel/tracing/` o en kernel mas antiguos en `/sys/kernel/debug/tracing/`
 ```bash
-$ sudo ls -a /sys/kernel/tracing/
+user@mcn:~$ sudo ls -a /sys/kernel/tracing/
 .                                   enabled_functions           printk_formats          set_graph_function	trace_options
 ..                                  error_log                   README                  set_graph_notrace	trace_pipe
 available_events                    events                      rv                      snapshot		    trace_stat
@@ -64,7 +73,7 @@ dyn_ftrace_total_info               per_cpu                     set_ftrace_pid  
 ```
 Si no estuviera montado habria que montarlo manualmente
 ```bash
-$ sudo mount -t tracefs nodev /sys/kernel/tracing
+user@mcn:~$ sudo mount -t tracefs nodev /sys/kernel/tracing
 ```
 o añadirlo a `/etc/fstab` para su montado automatico
 ```shell
@@ -100,7 +109,7 @@ cat trace
 ### available_tracers
 lista de tracert configurados y disponibles
 ```bash
-$ cat available_tracers 
+user@mcn:/sys/kernel/tracing$ cat available_tracers 
 timerlat osnoise hwlat blk mmiotrace function_graph wakeup_dl wakeup_rt wakeup function nop
 ```
 Cada tracer se enfoca en aspectos específicos del rendimiento y comportamiento del kernel:
@@ -119,14 +128,14 @@ Cada tracer se enfoca en aspectos específicos del rendimiento y comportamiento 
 ### current_tracer
 Tracer en uso en este momento.
 ```bash
-cat current_tracer 
+ cat current_tracer 
 nop
 ```
 
 ### buffer_size_kb
 Tamaño del buffer en kb
 ```bash
- sudo cat /sys/kernel/tracing/buffer_size_kb
+user@mcn:~$ sudo cat /sys/kernel/tracing/buffer_size_kb
 1410
 ```
 
@@ -135,9 +144,9 @@ Tamaño del buffer en kb
 echo 'name of tracer' > current_tracer 
 ```
 ```bash
-$ sudo sh -c "echo 'function' > /sys/kernel/tracing/current_tracer"
+user@mcn:~$ sudo sh -c "echo 'function' > /sys/kernel/tracing/current_tracer"
 
-$ sudo cat /sys/kernel/tracing/current_tracer
+user@mcn:~$ sudo cat /sys/kernel/tracing/current_tracer
 function
 ```
 
@@ -145,7 +154,7 @@ function
 
 ### Tracer `function`
 ```bash
-$ sudo head -20  /sys/kernel/tracing/trace
+user@mcn:~$ sudo head -20  /sys/kernel/tracing/trace
 # tracer: function
 #
 # entries-in-buffer/entries-written: 205028/367225258   #P:4
@@ -176,7 +185,7 @@ En el trace se puede ver:
 
 ### Tracer `function_graph`
 ```bash
-$ sudo head -20 /sys/kernel/tracing/trace
+user@mcn:~$ sudo head -20 /sys/kernel/tracing/trace
 # tracer: function_graph
 #
 # CPU  DURATION                  FUNCTION CALLS
@@ -236,9 +245,9 @@ Mediante la configuracion de `/sys/kernel/tracing/max_grpht_depth` se puede limi
 Por defecto es 0
 
 ```bash
-# echo 2 > max_graph_depth 
-# echo function_graph > current_tracer 
-# head -50 trace
+root@mcn:/sys/kernel/tracing# echo 2 > max_graph_depth 
+root@mcn:/sys/kernel/tracing# echo function_graph > current_tracer 
+root@mcn:/sys/kernel/tracing# head -50 trace
 
 # tracer: function_graph
 #
@@ -270,7 +279,7 @@ Por defecto es 0
 
 ## Borrado del buffer del tracer
 ```bash
-# echo > /sys/kernel/tracing/trace
+root@mcn:/sys/kernel/tracing# echo > /sys/kernel/tracing/trace
 ```
 
 ## Encendiendo y apagando el tracing
@@ -285,16 +294,34 @@ Ejemplo de uso durante test
  echo 1 > tracing_on; run_test; echo 0 > tracing_on
 ```
 
+## Acciones al ejecutar una funcion.
+Es posible encender o apagar el tracing al inicio de una determinada funcion mediante la formuna `function:command[:count]`.
+* function: es el nombre de la funcion que dispara el comando
+* commad: Tipo de comando a ejecutar
+  * traceon: activar el tracing
+  * traceoff: desactivar el tracing
+  * stacktrace: trazar el callstack de la funcion (similar a la opcion func_stack_trace)
+* count: Opcional, indica el numero de veces que se repetira el comando.
+
+### agregar accion
+```bash
+root@mcn:/sys/kernel/tracing# echo 'ksys_read:traceon:1' > set_ftrace_filter
+```
+### borrar accion
+```bash
+root@mcn:/sys/kernel/tracing# echo '!ksys_read:traceon:0' > set_ftrace_filter
+```
+
 ## Filtros
 
 ### Filtro por funcion
 todas las funciones del kernel que pueden ser filtradas estan exportadas en el fichero `/sys/kernel/tracing/available_filter_functions`
 ```bash
-# cat available_filter_functions | wc -l
+root@mcn:/sys/kernel/tracing# cat available_filter_functions | wc -l
 78390
 ```
 ```bash
-# tail available_filter_functions
+root@mcn:/sys/kernel/tracing# tail available_filter_functions
 fill_sg_in.constprop.0 [tls]
 complete_skb [tls]
 chain_to_walk.isra.0 [tls]
@@ -313,13 +340,13 @@ Se indica tambien el modulo en el que se encuentra la funcion
 
 #### Fijar un filtro
 ```bash
-# echo 'function' > current_tracer 
-# echo 'kfree' > set_ftrace_filter 
+root@mcn:/sys/kernel/tracing# echo 'function' > current_tracer 
+root@mcn:/sys/kernel/tracing# echo 'kfree' > set_ftrace_filter 
 ```
 
 ```bash
-# head -20 trace
-# tracer: function
+root@mcn:/sys/kernel/tracing# head -20 trace
+root@mcn:/sys/kernel/tracing# tracer: function
 #
 # entries-in-buffer/entries-written: 205069/218844   #P:4
 #
@@ -344,17 +371,17 @@ Se indica tambien el modulo en el que se encuentra la funcion
 #### Añadir un filtro
 Tambien admite wildcards
 ```bash
-# echo vfs_* >> set_ftrace_filter
+root@mcn:/sys/kernel/tracing# echo vfs_* >> set_ftrace_filter
 ```
 
 #### Borrar todos los filtros
 ```bash
-# echo > set_ftrace_filter 
+root@mcn:/sys/kernel/tracing# echo > set_ftrace_filter 
 ```
 
 ### Filtrar las funciones de un modulo
 ```bash
-# echo ':mod:module_name' > set_ftrace_filter
+root@mcn:/sys/kernel/tracing# echo ':mod:module_name' > set_ftrace_filter
 ```
 
 ### Filtrar las funciones que llama una funcion del kernel
@@ -363,12 +390,12 @@ Se puede obtener mediante el fichero `set_graph_function` y su opuesto `set_grap
 Funciona igual que `set_ftrace_filter` y `set_ftrace_notrace` pero para el tracer `function_graph`
 
 ```bash
-# echo 0 > tracing_on
-# echo function_graph > current_tracer
-# echo vfs_read > set_graph_function
-# echo 1 > tracing_on
+root@mcn:/sys/kernel/tracing# echo 0 > tracing_on
+root@mcn:/sys/kernel/tracing# echo function_graph > current_tracer
+root@mcn:/sys/kernel/tracing# echo vfs_read > set_graph_function
+root@mcn:/sys/kernel/tracing# echo 1 > tracing_on
 
-# cat trace
+root@mcn:/sys/kernel/tracing# cat trace
 # tracer: function_graph
 #
 # CPU  DURATION                  FUNCTION CALLS
@@ -456,11 +483,11 @@ echo 0 > $DEBUGFS/tracing/tracing_on
 ```
 
 ```bash
-$ sudo ./traceme.sh ls
+user@mcn:~$ sudo ./traceme.sh ls
 ls
 notes.txt  traceme.sh
 
-$ sudo cat /sys/kernel/tracing/trace
+user@mcn:~$ sudo cat /sys/kernel/tracing/trace
 # tracer: function
 #
 # entries-in-buffer/entries-written: 36611/36611   #P:4
@@ -494,15 +521,15 @@ $ sudo cat /sys/kernel/tracing/trace
 ```
 
 ```bash
-$ sudo cat /sys/kernel/tracing/trace | wc -l
+user@mcn:~$ sudo cat /sys/kernel/tracing/trace | wc -l
 36623
 ```
 
 ### Funciones que duren mas de un tiempo
 ```bash
-# echo 100000 > tracing_thresh 
-# echo function_graph > current_tracer 
-# head -60 trace
+root@mcn:/sys/kernel/tracing# echo 100000 > tracing_thresh 
+root@mcn:/sys/kernel/tracing# echo function_graph > current_tracer 
+root@mcn:/sys/kernel/tracing# head -60 trace
 
 # tracer: function_graph
 #
@@ -531,7 +558,7 @@ $ sudo cat /sys/kernel/tracing/trace | wc -l
 [...]
 ```
 
-## Flags
+### Flags
 Los flags proporcionan informacion sobre el estado del sistema en el momento de la llamada a funcion.
 
 ```bash
@@ -570,12 +597,12 @@ Los flags proporcionan informacion sobre el estado del sistema en el momento de 
 
 ```
 
-### irqs-off/BH-disabled (Posicion 1)
+#### irqs-off/BH-disabled (Posicion 1)
 Indica si las interrupciones están deshabilitadas o si los bottom halves están deshabilitados:
 * `.`: Interrupciones habilitadas y bottom halves habilitados
 * `d`: Interrupciones deshabilitadas (IRQs off)
 
-### need-resched (Posicion 2)  
+#### need-resched (Posicion 2)  
 Indica si el proceso actual necesita ser replanificado:
 * `N`: TIF_NEED_RESCHED y PREEMPT_NEED_RESCHED están establecidos
 * `n`: solo TIF_NEED_RESCHED está establecido  
@@ -585,7 +612,7 @@ Indica si el proceso actual necesita ser replanificado:
 * `TIF_NEED_RESCHED`: indica que el proceso lleva suficiente tiempo de ejecucion y necesita replanificarse pero continua ejecutandose. No se interrumpe inmediatamente.
 * `PREEMPT_NEED_RESCHED`: indica que el proceso actual debe ser reemplazado por otra de mas prioridad.
 
-### hardirq/softirq (Posicion 3)
+#### hardirq/softirq (Posicion 3)
 Muestra el contexto de interrupcion actual:
 * `.`: Contexto normal (process context)
 * `s`: Ejecutandose en contexto de soft interrupt
@@ -594,7 +621,7 @@ Muestra el contexto de interrupcion actual:
 * `z`: NMI esta ejecutandose
 * `Z`: NMI sucedio durante una hard interrupt
 
-### preempt-depth (Posicion 4)
+#### preempt-depth (Posicion 4)
 Indica el nivel de deshabilitación del preemption:
 * `.` = preemption habilitada (depth = 0)
 * `0-f` = Nivel de preempt_count en hexadecimal (cuántas veces se deshabilito el preemption)
@@ -604,3 +631,132 @@ Estos flags son importantes para entender el contexto de ejecucion y detectar pr
 - Secciones criticas muy largas (IRQs deshabilitadas por mucho tiempo)
 - Problemas de latencia (need-resched no atendido)
 - Problemas de concurrencia (preemption deshabilitado)
+
+## Opciones de Trace
+Es posible modificar las opciones en la que se registran y muestran los trace mediante el fichero `trace_options`.
+
+Cada tipo de tracing tiene distinto numero de opciones.
+
+```bash
+root@mcn:/sys/kernel/tracing#cat current_tracer 
+nop
+
+root@mcn:/sys/kernel/tracing#cat trace_options 
+print-parent
+nosym-offset
+nosym-addr
+noverbose
+noraw
+nohex
+nobin
+noblock
+nofields
+trace_printk
+annotate
+nouserstacktrace
+nosym-userobj
+noprintk-msg-only
+context-info
+nolatency-format
+record-cmd
+norecord-tgid
+overwrite
+nodisable_on_free
+irq-info
+markers
+noevent-fork
+nopause-on-trace
+hash-ptr
+function-trace
+nofunction-fork
+nodisplay-graph
+nostacktrace
+notest_nop_accept
+notest_nop_refuse
+```
+Las opciones que empiezan por `no` estan desabilitadas. Pej `nostacktrace`
+
+### Habilitar opciones
+```bash
+root@mcn:/sys/kernel/tracing# echo irq-info > trace_options
+```
+
+### Deshabilitar opciones
+```bash
+root@mcn:/sys/kernel/tracing# echo noirq-info > trace_options
+```
+
+### Directorio de opciones
+Tambien es posible habilitar o deshabilitar opciones escribiendo `1`o `0` en los ficheros de opciones dentro del directorio `options`
+
+```bash
+root@mcn:/sys/kernel/tracing# echo 1 > options/irq-info
+```
+```bash
+root@mcn:/sys/kernel/tracing# echo 0 > options/irq-info 
+```
+
+### Estadisticas de uso de funciones
+Tiene que estar `function` seleccionado como `current_profiler` Se habilita en el fichero `function_profile_enabled`
+
+Las estadisticas se guardan en el directorio `/sys/kernel/tracing/trace_stat`en un fichero por cada CPU del procesador
+
+```bash
+root@mcn:/sys/kernel/tracing# echo function > current_tracer 
+root@mcn:/sys/kernel/tracing# echo 1 > function_profile_enabled 
+root@mcn:/sys/kernel/tracing# ls ./trace_stat/
+function0  function1  function2  function3
+
+root@mcn:/sys/kernel/tracing# head -10 ./trace_stat/function0
+  Function                               Hit    Time            Avg             s^2
+  --------                               ---    ----            ---             ---
+  schedule                             28034    1970681373 us     70296.11 us     7554.095 us 
+  x64_sys_call                        122777    1656612969 us     13492.86 us     473.008 us  
+  schedule_hrtimeout_range             10463    1063109603 us     101606.5 us     158132.0 us 
+  schedule_hrtimeout_range_clock       10463    1063095878 us     101605.2 us     35196.36 us 
+  do_sys_poll                          17498    585450538 us     33458.14 us     23609.03 us 
+  do_poll.constprop.0                  17498    585251716 us     33446.77 us     39894.13 us 
+  __x64_sys_poll                       17407    566162986 us     32525.01 us     32502.54 us 
+  __x64_sys_futex                      22145    565463403 us     25534.58 us     10152.44 us 
+```
+
+## Trace desde espacio de usuario
+Es posible hacerlo escribiendo en `trace_marker`
+
+Desde el shell
+```bash
+root@mcn:/sys/kernel/tracing# echo nop > current_tracer 
+
+root@mcn:/sys/kernel/tracing# echo "hello world" > trace_marker
+cat: tracer: No existe el archivo o el directorio
+
+root@mcn:/sys/kernel/tracing# cat trace
+# tracer: nop
+#
+# entries-in-buffer/entries-written: 1/1   #P:4
+#
+#                                _-----=> irqs-off/BH-disabled
+#                               / _----=> need-resched
+#                              | / _---=> hardirq/softirq
+#                              || / _--=> preempt-depth
+#                              ||| / _-=> migrate-disable
+#                              |||| /     delay
+#           TASK-PID     CPU#  |||||  TIMESTAMP  FUNCTION
+#              | |         |   |||||     |         |
+           <...>-9066    [003] .....  7666.092874: tracing_mark_write: hello world
+```
+
+Desde programas de usuario.
+```c
+static int marker_fd = -1;
+[...]
+{
+    marker_fd = open("/sys/kernel/tracing/trace_marker", O_WRONLY);
+    if (marker_fd < 0) {
+        perror("error:");
+        exit(-1);
+	  }
+    write(marker_fd, buf, buff_size);
+    [...]
+}
+```
