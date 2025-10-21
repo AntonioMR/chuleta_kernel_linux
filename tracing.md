@@ -1,10 +1,10 @@
-# Linux Tracing Cheatsheet
+# Linux Tracing Cheatsheet (ftrace)
 Ftrace permite rastrear y monitorizar las llamadas a funciones del kernel en tiempo real para debugging y análisis de rendimiento, mostrando el flujo de ejecución del código del kernel.
 
 [mas info](https://www.kernel.org/doc/html/latest/trace/ftrace.html)
 
 ## Índice
-- [Linux Tracing Cheatsheet](#linux-tracing-cheatsheet)
+- [Linux Tracing Cheatsheet (ftrace)](#linux-tracing-cheatsheet-ftrace)
   - [Índice](#índice)
   - [Configuraciones del Kernel necesarias](#configuraciones-del-kernel-necesarias)
   - [Ftrace en el sitema de ficheros](#ftrace-en-el-sitema-de-ficheros)

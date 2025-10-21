@@ -23,6 +23,14 @@ Técnicas de debugging y logging en el kernel:
 - Kernel panic y oops
 - Herramientas de depuración
 
+### [Function Tracing](./tracing.md)
+Guía sobre técnicas de tracing en el kernel de Linux:
+- Uso de ftrace para seguimiento de funciones
+- Configuración y filtros de tracing
+- Herramientas como trace-cmd y perf
+- Ejemplos prácticos de análisis de rendimiento y depuración
+- Interpretación de resultados de tracing
+
 ## 🛠️ Herramientas
 
 ### [Plantillas de Módulos](./module_template/)
