@@ -27,8 +27,11 @@ Los Trace Events en Linux son un mecanismo mas avanzado que ftracing que permite
         - [Enable\_event](#enable_event)
         - [Disable\_event](#disable_event)
         - [stacktrace](#stacktrace)
-    - [hist](#hist)
+        - [hist](#hist)
+        - [Comandos disponibles](#comandos-disponibles)
+    - [hist](#hist-1)
     - [inject](#inject)
+  - [Habilitar eventos con `set_event`](#habilitar-eventos-con-set_event)
 
 ## TRACE_EVENT macro
 El kernel utiliza la macro `TRACE_EVENT` para definir las esctruturas del tracepoint que sera incluido en el codigo. Tambien crea la funcion callback que sera llamada para traducir e insertar los datos en el buffer circular del tracert
@@ -175,7 +178,7 @@ root@mcn:/sys/kernel/tracing# echo 0 > events/sched/enable
 ```
 
 ## Consultar estado del evento 
-Consultando el estado del fichero se puede saber si el evento esta habilitado.
+Consultando el estado del fichero `enable` se puede saber si el evento esta habilitado.
 
 Para el fichero `enable` de un subsistema tenemos las siguientes opciones:
 * 0: Todos los eventos deshabilitados
@@ -337,5 +340,68 @@ Eliminar el trigger
 root@mcn:/sys/kernel/tracing# echo '!stacktrace:5' > events/kmem/kmalloc/trigger
 ```
 
+##### hist
+Añade estadisticas para generar un histrograma en base a los eventos
+
+Formato
+```bash
+hist:keys=<field1[,field2,...]>[:values=<field1[,field2,...]>]
+  [:sort=<field1[,field2,...]>][:size=#entries][:pause][:continue]
+  [:clear][:name=histname1] [if <filter>]
+```
+Cuando el trigger se dispara, se añade una entrada a la tabla histograma usando los keys y values definidos. Si no se definen values se hara un conteo de las veces que sucede.
+
+
+Ejemplos
+```bash
+root@mcn:/sys/kernel/tracing# echo 'hist:key=common_pid.execname' > events/raw_syscalls/sys_enter/trigger
+```
+
+```bash
+root@mcn:/sys/kernel/tracing# echo 'hist:key=common_pid.execname' > events/raw_syscalls/sys_enter/trigger
+```
+
+##### Comandos disponibles
+Es posible ver los comandos disponibles mostrando el contenido del fichero `trigger`
+```bash
+root@mcn:/sys/kernel/tracing# cat events/kmem/kmalloc/trigger 
+# Available triggers:
+# traceon traceoff snapshot stacktrace enable_event disable_event enable_hist disable_hist hist
+```
+
 ### hist
+Es el fichero donde ser almacenan el histrograma recogido mediante el commando `hist` aplicado al `trigger` de un evento
+```bash
+root@mcn:/sys/kernel/tracing# cat events/raw_syscalls/sys_enter/hist 
+# event histogram
+#
+# trigger info: hist:keys=common_pid.execname:vals=hitcount:sort=hitcount:size=2048 [active]
+#
+
+{ common_pid: kerneloops      [      2044] } hitcount:          2
+{ common_pid: kerneloops      [      2046] } hitcount:          2
+[...]
+{ common_pid: Compositor      [      3228] } hitcount:       7250
+{ common_pid: IPC I/O Child   [      5107] } hitcount:       7782
+{ common_pid: gdbus           [      2478] } hitcount:       8141
+{ common_pid: bluetooth       [      5786] } hitcount:       8692
+{ common_pid: IPC I/O Parent  [      3176] } hitcount:      11404
+{ common_pid: gala            [      2699] } hitcount:      13358
+{ common_pid: Xorg            [      1220] } hitcount:      14757
+{ common_pid: Timer           [      5116] } hitcount:      20771
+{ common_pid: firefox         [      3081] } hitcount:      28517
+```
+
 ### inject
+
+## Habilitar eventos con `set_event`
+Todos los eventos listados en `available_events` pueden tambien habilitarse añadiendolos al fichero `set_event`
+
+```bash
+root@mcn:/sys/kernel/tracing# echo sched:sched_wakeup > set_event
+```
+
+Es posible añadir mas eventos mediante el uso de `>>`. Para deshabilitarlo se puede usar la negacion con `!` o deshabilitarlos todos con:
+```bash
+root@mcn:/sys/kernel/tracing# echo > set_event
+```

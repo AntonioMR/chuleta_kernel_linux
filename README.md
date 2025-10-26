@@ -31,6 +31,11 @@ Guía sobre técnicas de tracing en el kernel de Linux:
 - Ejemplos prácticos de análisis de rendimiento y depuración
 - Interpretación de resultados de tracing
 
+### [Events Tracing](./events.md)
+Guía sobre tracing de eventos en el kernel de Linux:
+- Tipos de eventos soportados
+- Activación y filtrado de eventos
+
 ## 🛠️ Herramientas
 
 ### [Plantillas de Módulos](./module_template/)
