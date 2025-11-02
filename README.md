@@ -36,6 +36,13 @@ Guía sobre tracing de eventos en el kernel de Linux:
 - Tipos de eventos soportados
 - Activación y filtrado de eventos
 
+### [Trace-cmd](./trace-cmd.md)
+Guia para el uso de trace-cmd en el kernel de Linux:
+- Grabación y reproducción de trazas
+- Opciones de filtrado y selección de eventos
+- Análisis de resultados y formatos de salida
+- Ejemplos prácticos de uso
+
 ## 🛠️ Herramientas
 
 ### [Plantillas de Módulos](./module_template/)

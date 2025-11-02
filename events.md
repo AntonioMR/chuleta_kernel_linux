@@ -32,6 +32,7 @@ Los Trace Events en Linux son un mecanismo mas avanzado que ftracing que permite
     - [hist](#hist-1)
     - [inject](#inject)
   - [Habilitar eventos con `set_event`](#habilitar-eventos-con-set_event)
+  - [Filtrar eventos de un pid](#filtrar-eventos-de-un-pid)
 
 ## TRACE_EVENT macro
 El kernel utiliza la macro `TRACE_EVENT` para definir las esctruturas del tracepoint que sera incluido en el codigo. Tambien crea la funcion callback que sera llamada para traducir e insertar los datos en el buffer circular del tracert
@@ -405,3 +406,8 @@ Es posible añadir mas eventos mediante el uso de `>>`. Para deshabilitarlo se p
 ```bash
 root@mcn:/sys/kernel/tracing# echo > set_event
 ```
+
+## Filtrar eventos de un pid
+Es posible filtrar los eventos de un proceso añadiendo el `pid` del proceso a `set_event_pid`.
+De esta forma solo se mostraran los eventos habilitados mediante `set_event`, o el correspondiente fichero `enable` dentro de events, que se correspondan con el `pid` filtrado.
+
